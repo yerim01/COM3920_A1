@@ -1,4 +1,5 @@
-const database = include('databaseConnection');
+// const database = include('../databaseConnection');
+const database = require('../databaseConnection');
 
 async function createUser(postData) {
 	let createUserSQL = `
