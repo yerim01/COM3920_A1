@@ -1,16 +1,17 @@
 
-require("./utils.js");
+require("../utils.js");
 
 require('dotenv').config();
 const url = require('url');
 const express = require('express');
+const path = require('path');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const bcrypt = require('bcrypt');
 const saltRounds = 12;
 
-const database = include('../databaseConnection');
-const db_utils = include('../database/db_utils');
+const database = include('databaseConnection');
+const db_utils = include('database/db_utils');
 const db_users = include('database/users');
 const success = db_utils.printMySQLVersion();
 
@@ -133,15 +134,14 @@ app.get('/login', (req,res) => {
 });
 
 app.post('/signupSubmit', async (req, res) => {
-    const { name, email, password } = req.body;
+    const { username, password } = req.body;
 
     const schema = Joi.object({
-        name: Joi.string().alphanum().max(20).required(),
-        email: Joi.string().email().required(),
+        username: Joi.string().alphanum().min(3).max(20).required(),
         password: Joi.string().min(6).max(20).required() // Ensure passwords are strong
     });
 
-    const validationResult = schema.validate({ name, email, password });
+    const validationResult = schema.validate({ username, password });
     if (validationResult.error != null) {
         const errorMessage = validationResult.error.message;
         console.log(validationResult.error);
@@ -155,42 +155,41 @@ app.post('/signupSubmit', async (req, res) => {
         // Using MySQL's parameterized query feature to prevent SQL injection
         const [result] = await database.execute(
             'INSERT INTO user (username, password) VALUES (?, ?)',
-            [name, hashedPassword]
+            [username, hashedPassword]
         );
 
         console.log("Inserted user with ID:", result.insertId);
 
         req.session.authenticated = true;
-        req.session.name = name;
+        req.session.username = username; // Changed from name to username
         req.session.cookie.maxAge = expireTime;
         res.redirect('/members');
     } catch (error) {
         console.error("Error inserting user:", error.message);
-        // Consider rendering an error page or sending a response indicating the error
         res.render("signupError", { errorMessage: "Error creating your account." });
     }
 });
 
 app.post('/loginSubmit', async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     // Validate input
     const schema = Joi.object({
-        email: Joi.string().email().required(),
-        password: Joi.string().max(20).required() // Consider removing the max length to allow stronger passwords
+        username: Joi.string().alphanum().min(3).max(20).required(), // Validation for username
+        password: Joi.string().min(6).max(20).required() // Allowing stronger passwords
     });
 
-    const validationResult = schema.validate({ email, password });
+    const validationResult = schema.validate({ username, password });
     if (validationResult.error != null) {
         console.log(validationResult.error);
         return res.render("invalidLogin", {errorMessage: validationResult.error.message});
     }
 
     try {
-        // Query the database for a user with the provided email
+        // Query the database for a user with the provided username
         const [rows] = await database.execute(
-            'SELECT * FROM user WHERE username = ?', // Ensure the column name matches your schema; it might be 'email' instead of 'username'
-            [email]
+            'SELECT * FROM user WHERE username = ?', // Adjusted to query by username
+            [username]
         );
 
         // If no user found, render the invalid login view
@@ -205,9 +204,7 @@ app.post('/loginSubmit', async (req, res) => {
         if (passwordMatches) {
             // Password matches, set up the session
             req.session.authenticated = true;
-            req.session.name = user.username; // Adjust according to your user schema, might be 'name' or 'email'
-            req.session.email = email; // Assuming you store this in the session
-            // req.session.user_type = user.user_type; // Uncomment if you have different user types and it's stored in the session
+            req.session.name = user.username; // Using username for session
             req.session.cookie.maxAge = expireTime;
 
             return res.redirect('/members');
@@ -221,6 +218,7 @@ app.post('/loginSubmit', async (req, res) => {
     }
 });
 
+
 app.get('/logout', (req,res) => {
     req.session.destroy();
     res.redirect('/');
@@ -230,7 +228,12 @@ app.get('/members', (req,res) => {
     if (!req.session.authenticated) {
         res.redirect('/login');
     } else {
-        res.render("members");
+        // Array of image filenames
+        const images = ['fluffy.gif', 'socks.gif', 'computer.gif'];
+        // Select a random image
+        const selectedImage = images[Math.floor(Math.random() * images.length)];
+        // Render the members page and pass the selectedImage
+        res.render("members", {selectedImage});
     }
 });
 
@@ -262,7 +265,8 @@ app.get('/demote/:id', async (req, res) => {
     }
 });
   
-app.use(express.static(__dirname + "/public"));
+// app.use(express.static(__dirname + "/public"));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get("*", (req,res) => {
 	res.status(404);

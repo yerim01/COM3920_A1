@@ -1,8 +1,15 @@
 <%- include("templates/header") %>
     <h1>Cats!</h1>
     <div class="row mb-3 text-center">
-        <div class="col-md-4 themed-grid-col"><img src='/fluffy.gif' class="img-fluid"></div>
-        <div class="col-md-4 themed-grid-col"><img src='/socks.gif' class="img-fluid"></div>
-        <div class="col-md-4 themed-grid-col"><img src='/computer.gif' class="img-fluid"></div>
+        <!-- Display only the selected image -->
+        <div class="col-md-12 themed-grid-col">
+            <img src='<%= selectedImage %>' class="img-fluid">
+        </div>
+        <!-- Sign Out Form -->
+        <div class="text-center mt-4">
+            <form action="/logout" method="get">
+                <button type="submit" class="btn btn-secondary rounded-pill px-3">Logout</button>
+            </form>
+        </div>
     </div>
-<%- include("templates/footer") %> 
+<%- include("templates/footer") %>
