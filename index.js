@@ -4,6 +4,7 @@ require("./utils.js");
 require('dotenv').config();
 const url = require('url');
 const express = require('express');
+const path = require('path');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const bcrypt = require('bcrypt');
@@ -227,7 +228,12 @@ app.get('/members', (req,res) => {
     if (!req.session.authenticated) {
         res.redirect('/login');
     } else {
-        res.render("members");
+        // Array of image filenames
+        const images = ['fluffy.gif', 'socks.gif', 'computer.gif'];
+        // Select a random image
+        const selectedImage = images[Math.floor(Math.random() * images.length)];
+        // Render the members page and pass the selectedImage
+        res.render("members", {selectedImage});
     }
 });
 
@@ -260,6 +266,7 @@ app.get('/demote/:id', async (req, res) => {
 });
   
 app.use(express.static(__dirname + "/public"));
+// app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get("*", (req,res) => {
 	res.status(404);
